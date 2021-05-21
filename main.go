@@ -12,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/flopp/go-findfont"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -133,16 +134,21 @@ func subTask(t *Task) int {
 	}
 	defer rsp.Body.Close()
 	b, err = ioutil.ReadAll(rsp.Body)
+	fmt.Println(strings.Repeat("#", 80))
 	fmt.Println(string(b))
 	if strings.Contains(string(b), "success") {
+		log.Println("成功发布任务", t.At)
 		return 0
 	}
 	if strings.Contains(string(b), "用户未登录") {
+		log.Println("发布失败，用户未登录")
 		return 1
 	}
 	if strings.Contains(string(b), "活动最多") {
+		log.Println("发布失败，超过发布限制")
 		return 2
 	}
+	log.Println("发布失败，接口返回异常")
 	return 3
 }
 
@@ -291,6 +297,11 @@ func main() {
 		}
 		itime = itime * 60
 
+		if time.Now().Unix() > 1624151797 { // 程序有效期到2021/06/20 9：16
+			infoLabel.SetText("发布任务异常！")
+			return
+		}
+
 		// 添加任务
 		t := &Task{at, ar, ss, es, st, et, yj, fw, gj, wx, phone, ts, te, gp}
 		mp[taskID] = t
@@ -389,11 +400,12 @@ func main() {
 				l8 := widget.NewLabel(fmt.Sprintf("手机：%s", t.Phone))
 				l9 := widget.NewLabel(fmt.Sprintf("任务开始：%s", t.Ts))
 				l10 := widget.NewLabel(fmt.Sprintf("任务结束：%s", t.Te))
+				l11 := widget.NewLabel(fmt.Sprintf("间隔时间：%s", t.Gp))
 				btn := widget.NewButton("取消任务", func() {
 					delete(mp, taskID)
 					w.Close()
 				})
-				c := container.New(layout.NewVBoxLayout(), l1, l2, l3, l4, l5, l6, la1, la2, la3, l7, l8, l9, l10, btn)
+				c := container.New(layout.NewVBoxLayout(), l1, l2, l3, l4, l5, l6, la1, la2, la3, l7, l8, l9, l10, l11, btn)
 				clis.Add(c)
 			}
 			w.SetContent(container.NewScroll(clis))
@@ -408,4 +420,3 @@ func main() {
 	w.ShowAndRun()
 	os.Unsetenv("FYNE_FONT")
 }
-
